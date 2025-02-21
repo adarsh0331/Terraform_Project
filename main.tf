@@ -110,7 +110,7 @@ resource "aws_instance" "my_ec2" {
   # Download the install.sh script from GitHub (if applicable)
   provisioner "remote-exec" {
     inline = [
-      "curl -o /home/ec2-user/install.sh https://raw.githubusercontent.com/srikanth9866/project_terraform/main/install.sh",
+      "curl -o /home/ec2-user/install.sh https://github.com/adarsh0331/Terraform_project/blob/main/install.sh",
       "chmod +x /home/ec2-user/install.sh",
       "sudo /home/ec2-user/install.sh"
     ]
