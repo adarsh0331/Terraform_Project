@@ -4,7 +4,7 @@ provider "aws" {
 
 terraform {
   backend "s3" {
-    bucket = "sri3928031999112"   # Your S3 bucket for storing Terraform state
+    bucket = "adarsg5622"   # Your S3 bucket for storing Terraform state
     key    = "terraform.tfstate"
     region = "us-east-1"
   }
@@ -32,7 +32,7 @@ data "aws_subnet" "default" {
 data "aws_security_group" "existing_terraform_sg" {
   filter {
     name   = "group-name"
-    values = ["srikanth0370-sg"]
+    values = ["terraform-sg"]
   }
 
   filter {
@@ -83,10 +83,10 @@ resource "aws_security_group" "terraform_sg" {
 
 # Create an EC2 Instance
 resource "aws_instance" "my_ec2" {
-  ami           = "ami-085ad6ae776d8f09c" # Update with the latest AMI ID for Mumbai
+  ami           = "ami-053a45fff0a704a47" # Update with the latest AMI ID for Mumbai
   instance_type = "t2.medium"
   subnet_id     = data.aws_subnet.default.id
-  key_name      = "srikanth0370"  # Use your existing key pair
+  key_name      = "terraform"  # Use your existing key pair
 
   vpc_security_group_ids = [
     length(data.aws_security_group.existing_terraform_sg.id) == 0 ? 
@@ -103,7 +103,7 @@ resource "aws_instance" "my_ec2" {
   # Download the Dockerfile from GitHub
   provisioner "remote-exec" {
     inline = [
-      "curl -o /home/ec2-user/Dockerfile https://raw.githubusercontent.com/srikanth9866/project_terraform/main/dockerfile",
+      "curl -o /home/ec2-user/Dockerfile https://github.com/adarsh0331/Terraform_project/blob/main/dockerfile",
     ]
   }
 
@@ -119,7 +119,7 @@ resource "aws_instance" "my_ec2" {
   connection {
     type        = "ssh"
     user        = "ec2-user"
-    private_key = file("/var/lib/jenkins/srikanth0370.pem")  # Path on the Jenkins server
+    private_key = file("/var/lib/jenkins/terraform.pem")  # Path on the Jenkins server
     host        = self.public_ip
   }
 }
