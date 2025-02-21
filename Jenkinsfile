@@ -4,15 +4,15 @@ pipeline {
     environment {
         // Define environment variables
         TERRAFORM_VERSION = "1.5.7" // Specify the Terraform version
-        AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID') // AWS credentials (if needed)
-        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY') // AWS credentials (if needed)
+        AWS_ACCESS_KEY_ID = credentials('aws-key') // AWS credentials (if needed)
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret') // AWS credentials (if needed)
     }
 
     stages {
         stage('CLONE SCM') {
             steps {
                 echo 'Cloning code from GitHub...'
-                git branch: 'main', url: 'https://github.com/srikanth9866/project_terraform.git'
+                git branch: 'main', url: 'https://github.com/adarsh0331/Terraform_project.git'
             }
         }
 
