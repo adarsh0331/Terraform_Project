@@ -103,14 +103,14 @@ resource "aws_instance" "my_ec2" {
   # Download the Dockerfile from GitHub
   provisioner "remote-exec" {
     inline = [
-      "curl -o /home/ec2-user/Dockerfile https://github.com/adarsh0331/Terraform_project/blob/main/dockerfile",
+      "curl -o /home/ec2-user/Dockerfile https://raw.githubusercontent.com/adarsh0331/Terraform_project/main/dockerfile",
     ]
   }
 
   # Download the install.sh script from GitHub (if applicable)
   provisioner "remote-exec" {
     inline = [
-      "curl -o /home/ec2-user/install.sh https://github.com/adarsh0331/Terraform_project/blob/main/install.sh",
+      "curl -o /home/ec2-user/install.sh https://raw.githubusercontent.com/adarsh0331/Terraform_project/main/install.sh",
       "chmod +x /home/ec2-user/install.sh",
       "sudo /home/ec2-user/install.sh"
     ]
