@@ -1,71 +1,76 @@
+# create a s3 bucket sri3928031999 
+
 provider "aws" {
-  region = "us-east-1"  # Mumbai region
+  region = "ap-south-1" # Change to your preferred AWS region
 }
 
 terraform {
   backend "s3" {
-    bucket = "adarsh5622"   # Your S3 bucket for storing Terraform state
-    key    = "terraform.tfstate"
-    region = "us-east-1"
+    bucket = "sri3928031999" # Replace with your S3 bucket name
+    key    = "terraform.tfstate"   # State file name
+    region = "ap-south-1"          # Replace with your S3 bucket region
   }
 }
 
-# Fetch the Default VPC
-data "aws_vpc" "default" {
-  default = true
-}
-
-# Fetch the Default Public Subnet in Mumbai Region
-data "aws_subnets" "default" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
+# Create a VPC
+resource "aws_vpc" "my_vpc" {
+  cidr_block = "10.2.0.0/16"
+  tags = {
+    Name = "MyVPC"
   }
 }
 
-# Select the first available subnet
-data "aws_subnet" "default" {
-  id = tolist(data.aws_subnets.default.ids)[0]
-}
+# Create a public subnet
+resource "aws_subnet" "public_subnet" {
+  vpc_id                  = aws_vpc.my_vpc.id
+  cidr_block              = "10.2.1.0/24"
+  map_public_ip_on_launch = true
+  availability_zone       = "ap-south-1a" # Change as needed
 
-# Check if the "terraform" Security Group exists
-data "aws_security_group" "existing_terraform_sg" {
-  filter {
-    name   = "group-name"
-    values = ["terraform-sg"]
-  }
-
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
+  tags = {
+    Name = "PublicSubnet"
   }
 }
 
-# Create Security Group only if "terraform" SG does not exist
-resource "aws_security_group" "terraform_sg" {
-  count       = length(data.aws_security_group.existing_terraform_sg.id) == 0 ? 1 : 0
-  name        = "terraform"
-  description = "Terraform-managed security group"
-  vpc_id      = data.aws_vpc.default.id
+# Create an Internet Gateway
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.my_vpc.id
+
+  tags = {
+    Name = "MyInternetGateway"
+  }
+}
+
+# Create a Route Table for Public Subnet
+resource "aws_route_table" "public_rt" {
+  vpc_id = aws_vpc.my_vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+
+  tags = {
+    Name = "PublicRouteTable"
+  }
+}
+
+# Associate Route Table with Public Subnet
+resource "aws_route_table_association" "public_assoc" {
+  subnet_id      = aws_subnet.public_subnet.id
+  route_table_id = aws_route_table.public_rt.id
+}
+
+# Create a Security Group allowing all traffic
+resource "aws_security_group" "allow_all" {
+  name        = "allow_all_traffic"
+  description = "Allow all inbound and outbound traffic"
+  vpc_id      = aws_vpc.my_vpc.id
 
   ingress {
-    from_port   = 22  # SSH
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 80  # HTTP
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 443  # HTTPS
-    to_port     = 443
-    protocol    = "tcp"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -77,53 +82,25 @@ resource "aws_security_group" "terraform_sg" {
   }
 
   tags = {
-    Name = "TerraformSecurityGroup"
+    Name = "AllowAllTraffic"
   }
 }
 
 # Create an EC2 Instance
 resource "aws_instance" "my_ec2" {
-  ami           = "ami-053a45fff0a704a47" # Update with the latest AMI ID for Mumbai
+  ami           = "ami-05fa46471b02db0ce" # Replace with your desired AMI ID
   instance_type = "t2.medium"
-  subnet_id     = data.aws_subnet.default.id
-  key_name      = "terraform"  # Use your existing key pair
-
-  vpc_security_group_ids = [
-    length(data.aws_security_group.existing_terraform_sg.id) == 0 ? 
-    aws_security_group.terraform_sg[0].id : 
-    data.aws_security_group.existing_terraform_sg.id
-  ]
-
+  subnet_id     = aws_subnet.public_subnet.id
   associate_public_ip_address = true
+
+  vpc_security_group_ids = [aws_security_group.allow_all.id]
 
   tags = {
     Name = "MyEC2Instance"
   }
-
-  # Download the Dockerfile from GitHub
-  provisioner "remote-exec" {
-    inline = [
-      "curl -o /home/ec2-user/Dockerfile https://raw.githubusercontent.com/adarsh0331/Terraform_project/main/dockerfile",
-    ]
-  }
-
-  # Download the install.sh script from GitHub (if applicable)
-  provisioner "remote-exec" {
-    inline = [
-      "curl -o /home/ec2-user/install.sh https://raw.githubusercontent.com/adarsh0331/Terraform_project/main/install.sh",
-      "chmod +x /home/ec2-user/install.sh",
-      "sudo /home/ec2-user/install.sh"
-    ]
-  }
-
-  connection {
-    type        = "ssh"
-    user        = "ec2-user"
-    private_key = file("/var/lib/jenkins/terraform.pem")  # Path on the Jenkins server
-    host        = self.public_ip
-  }
 }
-output "public_ip" {
-  description = "The public IP address of the EC2 instance"
-  value       = aws_instance.my_ec2.public_ip
+
+# Output the public IP of the EC2 instance
+output "instance_public_ip" {
+  value = aws_instance.my_ec2.public_ip
 }
